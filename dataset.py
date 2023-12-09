@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor
-import rasterio
+from PIL import Image
 
 
 class FVCDataset(Dataset):
@@ -18,15 +18,17 @@ class FVCDataset(Dataset):
             for img_path in glob.glob(class_path + "/*.tif"):
                 self.data.append([img_path, class_id])
         # print(self.data)
-        # self.img_dim = (416, 416)
+        self.img_dim = (784, 784)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         img_path, class_id = self.data[idx]
-        img = rasterio.open(img_path)
-        img = img.read(1)
+        img = Image.open(img_path)
+        img = img.resize(self.img_dim, Image.LANCZOS)
+        # img = rasterio.open(img_path)
+        # img = img.read(1)
         # plt.imshow(img, cmap="gray")
         # plt.show()
         img_tensor = ToTensor()(img)
