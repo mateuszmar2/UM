@@ -10,10 +10,12 @@ image_path = "FVC2002_dataset/101/101_1.tif"
 image = Image.open(image_path)
 image = image.resize(image_dim, Image.LANCZOS)
 print(image.size)
-
+print(image)
 plt.imshow(image, cmap="gray")
 plt.show(block=False)
 
+# Convert the image to a NumPy array
+image_array = np.array(image)
 
 pca = PCA()
 pca.fit(image)
@@ -38,11 +40,15 @@ plt.show(block=False)
 # Function to reconstruct and plot image for a given number of components
 def plot_at_k(k):
     ipca = IncrementalPCA(n_components=k)
-    image_recon = ipca.inverse_transform(ipca.fit_transform(image))
-    print(f"Image size after PCA: {image_recon.shape} at k={k}")
+    image_recon = ipca.inverse_transform(ipca.fit_transform(image_array))
+    image_recon = image_recon.astype(image_array.dtype)
+    image_recon = Image.fromarray(image_recon)
     plt.imshow(image_recon, cmap=plt.cm.gray)
     plt.title("Reconstructed image using {} PCA components".format(k))
     plt.show(block=False)
+
+    if k == 100:
+        print(image_recon)
 
 
 ks = [40, 60, 80, 100, 120, 140]
