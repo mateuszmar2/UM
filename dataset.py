@@ -16,11 +16,21 @@ class FVCDataset(Dataset):
         transform=None,
         single_class=True,
         fingerprint_database=str(random.randint(1, 4)),
+        pca_transform=True,
     ):
         self.imgs_path = root + fingerprint_database
         self.img_dim = img_dim
         file_list = glob.glob(self.imgs_path + "*")
         self.data = []
+
+        self.pca_transform = pca_transform
+
+        if pca_transform:
+            self.pca_components = 100
+            print(
+                f"PCA transform to {self.pca_components} principal components enabled"
+            )
+
         if single_class:
             file_list = [random.choice(file_list)]
 
@@ -37,29 +47,55 @@ class FVCDataset(Dataset):
         img_path, class_id = self.data[idx]
         img = Image.open(img_path)
         img = img.resize(self.img_dim, Image.LANCZOS)
+        if self.pca_transform:
+            img = pca_transform(img, self.pca_components)
+
         img_tensor = ToTensor()(img)
         class_id = torch.tensor([class_id])
         return img_tensor, class_id
 
 
+def pca_transform(img, k):
+    import numpy as np
+    from sklearn.decomposition import PCA, IncrementalPCA
+
+    img_array = np.array(img)
+
+    pca = PCA()
+    pca.fit(img)
+    ipca = IncrementalPCA(n_components=k)
+    img_recon = ipca.inverse_transform(ipca.fit_transform(img_array))
+    img_recon = img_recon.astype(img_recon.dtype)
+    # Apply min-max scaling to bring the values in the [0, 1] range
+    min_val = np.min(img_recon)
+    max_val = np.max(img_recon)
+    img_recon = (img_recon - min_val) / (max_val - min_val)
+    img_recon = Image.fromarray(img_recon)
+    return img_recon
+
+
 def get_data_loaders(
-    img_dim,
-    fingerprint_database,
     single_class,
+    img_dim=(784, 784),
+    fingerprint_database=str(random.randint(1, 4)),
     validation_split=0.25,
     shuffle_dataset=True,
     batch_size=4,
+    pca_transform=True,
 ):
     dataset = FVCDataset(
         single_class=single_class,
         img_dim=img_dim,
         fingerprint_database=fingerprint_database,
+        pca_transform=pca_transform,
     )
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     classes = list(set([dataset[i][1].item() for i in range(dataset_size)]))
     print(f"Dataset size: {dataset_size}")
     print(f"Dataset classes: {classes}")
+    img_size = dataset[0][0].size()
+    print(f"Image size: {img_size}")
 
     if shuffle_dataset:
         random.shuffle(indices)
@@ -98,7 +134,7 @@ def get_data_loaders(
 
 
 if __name__ == "__main__":
-    train_loader, test_loader, _, _ = get_data_loaders(single_class=True)
+    train_loader, test_loader, _, _ = get_data_loaders(single_class=False)
 
     for loader in [train_loader, test_loader]:
         # load images to dict
