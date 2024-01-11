@@ -15,7 +15,7 @@ class FVCDataset(Dataset):
         img_dim=(784, 784),
         transform=None,
         single_class=True,
-        fingerprint_database="",
+        fingerprint_database=str(random.randint(1, 4)),
     ):
         self.imgs_path = root + fingerprint_database
         self.img_dim = img_dim
@@ -43,9 +43,18 @@ class FVCDataset(Dataset):
 
 
 def get_data_loaders(
-    single_class=True, validation_split=0.4, shuffle_dataset=True, batch_size=4
+    img_dim,
+    fingerprint_database,
+    single_class,
+    validation_split=0.25,
+    shuffle_dataset=True,
+    batch_size=4,
 ):
-    dataset = FVCDataset(single_class=single_class)
+    dataset = FVCDataset(
+        single_class=single_class,
+        img_dim=img_dim,
+        fingerprint_database=fingerprint_database,
+    )
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     classes = list(set([dataset[i][1].item() for i in range(dataset_size)]))
@@ -71,12 +80,13 @@ def get_data_loaders(
         ]
         split = int(validation_split * len(test_indices))
         test_indices = test_indices[:split]
-        train_dataset_size = len(train_indices)
-        test_dataset_size = len(test_indices)
-        print(
-            f"Train dataset size: {train_dataset_size}, test dataset size: {test_dataset_size}"
-        )
-        print(f"Used dataset size: {train_dataset_size + test_dataset_size}")
+
+    train_dataset_size = len(train_indices)
+    test_dataset_size = len(test_indices)
+    print(
+        f"Train dataset size: {train_dataset_size}, test dataset size: {test_dataset_size}"
+    )
+    print(f"Used dataset size: {train_dataset_size + test_dataset_size}")
 
     train_sampler = SubsetRandomSampler(train_indices)
     test_sampler = SubsetRandomSampler(test_indices)
@@ -84,11 +94,11 @@ def get_data_loaders(
     train_loader = DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
     test_loader = DataLoader(dataset, batch_size=batch_size, sampler=test_sampler)
 
-    return train_loader, test_loader
+    return train_loader, test_loader, train_dataset_size, test_dataset_size
 
 
 if __name__ == "__main__":
-    train_loader, test_loader = get_data_loaders(single_class=False)
+    train_loader, test_loader, _, _ = get_data_loaders(single_class=True)
 
     for loader in [train_loader, test_loader]:
         # load images to dict
