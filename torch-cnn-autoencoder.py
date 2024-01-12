@@ -9,7 +9,7 @@ from dataset import FVCDataset, get_data_loaders
 
 # metadata
 # 100 epochs is too low, 200 is better, maybe more is even better
-num_epochs = 300
+num_epochs = 200
 # smaller batch size is better
 batch_size = 2
 validation_split = batch_size / 8 if batch_size < 8 else 0.25
@@ -25,6 +25,7 @@ data_loader, test_data_loader, _, test_dataset_size = get_data_loaders(
     validation_split=validation_split,
     img_dim=(400, 400),
     fingerprint_database="1",
+    pca_transform=True,
 )
 
 # check if values are in range [0, 1]
@@ -89,7 +90,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-    print(f"Epoch:{epoch+1}, Loss:{loss.item():.4f}")
+    print(f"Epoch:{epoch+1}, Loss:{loss.item():.5f}")
     outputs.append((epoch, img, recon))
 
 # Plotting the training images and their reconstructions
@@ -124,7 +125,7 @@ with torch.no_grad():
         recon = model(img)
         loss = criterion(recon, img)
 
-print(f"Epoch:test, Loss:{loss.item():.4f}")
+print(f"Epoch:test, Loss:{loss.item():.5f}")
 outputs.append((epoch, img, recon))
 
 # Plotting the test images and their reconstructions
