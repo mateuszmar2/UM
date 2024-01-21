@@ -13,10 +13,9 @@ class FVCDataset(Dataset):
         self,
         root="FVC2002_dataset/",
         img_dim=(784, 784),
-        transform=None,
-        single_class=True,
-        fingerprint_database=str(random.randint(1, 4)),
-        pca_transform=True,
+        single_class=False,
+        fingerprint_database="1",
+        pca_transform=False,
     ):
         self.imgs_path = root + fingerprint_database
         self.img_dim = img_dim
@@ -75,13 +74,15 @@ def pca_transform(img, k):
 
 
 def get_data_loaders(
-    single_class,
     img_dim=(784, 784),
-    fingerprint_database=str(random.randint(1, 4)),
+    fingerprint_database="1",
+    single_class=False,
     validation_split=0.25,
     shuffle_dataset=True,
-    batch_size=4,
-    pca_transform=True,
+    batch_size=2,
+    pca_transform=False,
+    train_class=None,
+    test_class=None,
 ):
     dataset = FVCDataset(
         single_class=single_class,
@@ -97,28 +98,56 @@ def get_data_loaders(
     img_size = dataset[0][0].size()
     print(f"Image size: {img_size}")
 
-    if shuffle_dataset:
-        random.shuffle(indices)
-
     # in case of single class whole dataset contains only one class
     if single_class:
+        if shuffle_dataset:
+            random.shuffle(indices)
         split = int(validation_split * dataset_size)
         train_indices, test_indices = indices[split:], indices[:split]
 
     else:
-        train_class, test_class = random.sample(classes, 2)
+        if not train_class:
+            train_class = random.choice(classes)
+            if train_class not in classes:
+                raise Exception(
+                    f"Train class {train_class} not in dataset classes, available classes: {classes}"
+                )
+        if not test_class:
+            test_class = random.choice(classes)
+            if test_class not in classes:
+                raise Exception(
+                    f"Test class {test_class} not in dataset classes, available classes: {classes}"
+                )
+
+        for i in range(dataset_size):
+            print(f"indice:{i}: {dataset[i][1].item()}")
+
         print(f"train class: {train_class}, test class: {test_class}")
         train_indices = [
             i for i in range(dataset_size) if dataset[i][1].item() == train_class
         ]
-        test_indices = [
-            i for i in range(dataset_size) if dataset[i][1].item() == test_class
-        ]
-        split = int(validation_split * len(test_indices))
-        test_indices = test_indices[:split]
+        if train_class == test_class:
+            indices = train_indices
+            split = int(validation_split * len(indices))
+            if shuffle_dataset:
+                random.shuffle(indices)
+            train_indices = indices[split:]
+            test_indices = indices[:split]
+        else:
+            test_indices = [
+                i for i in range(dataset_size) if dataset[i][1].item() == test_class
+            ]
+            test_split = int(validation_split * len(test_indices))
+            train_split = int(validation_split * len(train_indices))
+            if shuffle_dataset:
+                random.shuffle(train_indices)
+                random.shuffle(test_indices)
+            train_indices = train_indices[test_split:]
+            test_indices = test_indices[:test_split]
 
     train_dataset_size = len(train_indices)
     test_dataset_size = len(test_indices)
+    print(f"Train idices: {train_indices}, test indices: {test_indices}")
     print(
         f"Train dataset size: {train_dataset_size}, test dataset size: {test_dataset_size}"
     )
@@ -134,7 +163,9 @@ def get_data_loaders(
 
 
 if __name__ == "__main__":
-    train_loader, test_loader, _, _ = get_data_loaders(single_class=False)
+    train_loader, test_loader, _, _ = get_data_loaders(
+        single_class=False, test_class=101, shuffle_dataset=True
+    )
 
     for loader in [train_loader, test_loader]:
         # load images to dict

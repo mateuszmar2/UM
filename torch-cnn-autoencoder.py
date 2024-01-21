@@ -25,7 +25,10 @@ data_loader, test_data_loader, _, test_dataset_size = get_data_loaders(
     validation_split=validation_split,
     img_dim=(400, 400),
     fingerprint_database="1",
-    pca_transform=True,
+    pca_transform=False,
+    train_class=101,
+    test_class=101,
+    shuffle_dataset=False,
 )
 
 # check if values are in range [0, 1]
