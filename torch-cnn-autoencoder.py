@@ -23,7 +23,7 @@ data_loader, test_data_loader, _, test_dataset_size = get_data_loaders(
     single_class=False,
     batch_size=batch_size,
     validation_split=validation_split,
-    img_dim=(400, 400),
+    img_dim=(300, 300),
     fingerprint_database="1",
     pca_transform=False,
     train_class=101,
@@ -41,32 +41,30 @@ class Autoencoder(nn.Module):
     def __init__(self):
         super().__init__()
         # torch.Size of image = batch_size (N), color channel, height, width
-        # torch.Size([2, 1, 400, 400])
+        # torch.Size([2, 1, 300, 300])
         self.encoder = nn.Sequential(
             # input_channel = 1 (grayscale)
             # output_channel = 16
-            # kernel_size = 3 (3x3 filter)
-            # stride = 2 (move 2 pixels at a time)
+            # kernel_size = 4 (4x4 filter)
+            # stride = 2 (move 3 pixels at a time)
             # padding = 1 (add 1 pixel of padding to each side)
-            nn.Conv2d(1, 16, 3, stride=2, padding=1),  # N, 16, 400, 400
+            nn.Conv2d(1, 16, 6, stride=2, padding=1),  # N, 16, 300, 300
             nn.ReLU(),
             # output of previous layer is input of next layer
-            nn.Conv2d(16, 32, 3, stride=2, padding=1),  # N, 32, 200, 200
+            nn.Conv2d(16, 32, 4, stride=3, padding=1),  # N, 32, 149, 149
             nn.ReLU(),
-            nn.Conv2d(32, 64, 10),  # N, 64 channels, 92/10 pixels per channel
+            # if there will be 1 pixel for each channel, then it will learn placement of the pixels
+            # instead of learning the features of the fingerprint
+            nn.Conv2d(32, 64, 5),  # N, 64 channels, 50/10 pixels per channel
         )
 
-        # N, 64, 92/10, 92/10
+        # N, 64, 50/10, 50/10
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(64, 32, 10),  # N, 32, 92, 92
+            nn.ConvTranspose2d(64, 32, 5),  # N, 32, 50, 50
             nn.ReLU(),
-            nn.ConvTranspose2d(
-                32, 16, 3, stride=2, padding=1, output_padding=1
-            ),  # N, 16, 200, 200
+            nn.ConvTranspose2d(32, 16, 4, stride=3, padding=1),  # N, 16, 148, 148
             nn.ReLU(),
-            nn.ConvTranspose2d(
-                16, 1, 3, stride=2, padding=1, output_padding=1
-            ),  # N, 1, 400, 400
+            nn.ConvTranspose2d(16, 1, 6, stride=2, padding=1),  # N, 1, 300, 300
             nn.Sigmoid(),
         )
 
@@ -137,14 +135,15 @@ plt.axis("off")
 plt.title("Test Images vs Reconstructed Images test")
 plt.gray()
 imgs = outputs[0][1].detach().cpu().numpy()
-recon = outputs[0][2].detach().cpu().numpy()
+recons = outputs[0][2].detach().cpu().numpy()
+
 for i, item in enumerate(imgs):
     if i >= 8:
         break
     plt.subplot(2, test_dataset_size, i + 1)
     plt.imshow(item[0])
 
-for i, item in enumerate(recon):
+for i, item in enumerate(recons):
     if i >= 8:
         break
     plt.subplot(2, test_dataset_size, test_dataset_size + i + 1)  # 2 + i + 1
