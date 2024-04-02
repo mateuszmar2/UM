@@ -49,10 +49,10 @@ class Autoencoder(nn.Module):
             # stride = 2 (move 3 pixels at a time)
             # padding = 1 (add 1 pixel of padding to each side)
             nn.Conv2d(1, 16, 6, stride=2, padding=1),  # N, 16, 300, 300
-            nn.ReLU(),
+            nn.LeakyReLU(),
             # output of previous layer is input of next layer
             nn.Conv2d(16, 32, 4, stride=3, padding=1),  # N, 32, 149, 149
-            nn.ReLU(),
+            nn.LeakyReLU(),
             # if there will be 1 pixel for each channel, then it will learn placement of the pixels
             # instead of learning the features of the fingerprint
             nn.Conv2d(32, 64, 5),  # N, 64 channels, 50/10 pixels per channel
@@ -61,9 +61,9 @@ class Autoencoder(nn.Module):
         # N, 64, 50/10, 50/10
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(64, 32, 5),  # N, 32, 50, 50
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.ConvTranspose2d(32, 16, 4, stride=3, padding=1),  # N, 16, 148, 148
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.ConvTranspose2d(16, 1, 6, stride=2, padding=1),  # N, 1, 300, 300
             nn.Sigmoid(),
         )
